@@ -15,7 +15,7 @@ ArduinoLEDMatrix matrix;
 Adafruit_SSD1306 display(OLED_RESET);
 
 #include "icons.h"
-// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 480 + 336)
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 480)
 const int epd_bitmap_allArray_LEN = 5;
 const unsigned char *epd_bitmap_allArray[5] = { // 32x23px
     epd_bitmap_check_lg,
@@ -97,6 +97,15 @@ long parseISO8601(const char *dateTime)
   return (long)t;
 }
 
+void repeatString(const char *str, int times, char *result)
+{
+  result[0] = '\0';
+
+  for (int i = 0; i < times; ++i)
+  {
+    strcat(result, str);
+  }
+}
 
 void setup()
 {
@@ -139,18 +148,27 @@ void setup()
     display.display();
   }
 
-  String dot = "";
-
+  int frame = 0;
+  const char *dot = ".";
   while (status != WL_CONNECTED)
   {
+
+    char result[100];
+    repeatString(dot, frame + 1, result);
+
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
     display.clearDisplay();
-    display.setCursor(0, 0);
-    display.print("Connecting to");
-    display.setCursor(0, 1);
+    display.setCursor(35, 10);
+    display.print("Connecting" + String(result));
+    display.setCursor(35, 20);
     display.print(ssid);
     display.display();
+    frame++;
+    if (frame > 2)
+    {
+      frame = 0;
+    }
     status = WiFi.begin(ssid, pass);
   }
 
@@ -226,13 +244,22 @@ void loop()
       }
       else if ((bool)data["paused"])
       {
+        String goal = data["goal"];
+        if (goal.length() > 10)
+        {
+          goal = goal.substring(0, 10) + "...";
+        }
         display.setCursor(36, 10);
+        display.setTextSize(2);
         display.print("Paused");
+        display.setTextSize(1);
+        display.setCursor(36, 25);
+        display.print(goal);
         display.drawBitmap(0, 10, getIcon("pause"), 32, 23, WHITE);
       }
       else
       {
-            long remaining = parseISO8601(data["endTime"]) - currentTime.getUnixTime();
+        long remaining = parseISO8601(data["endTime"]) - currentTime.getUnixTime();
         int minutesR = remaining / 60;
         int secondsR = remaining % 60;
 
@@ -244,15 +271,25 @@ void loop()
         }
         else
         {
+          String goal = data["goal"];
+          if (goal.length() > 10)
+          {
+            goal = goal.substring(0, 10) + "...";
+          }
+
           char remainingMinStr[3];
           char remainingSecStr[3];
           sprintf(remainingMinStr, "%02d", minutesR);
           sprintf(remainingSecStr, "%02d", secondsR);
 
           display.setCursor(36, 10);
+          display.setTextSize(2);
           display.print(remainingMinStr);
           display.print(":");
           display.print(remainingSecStr);
+          display.setTextSize(1);
+          display.setCursor(36, 25);
+          display.print(goal);
         }
         display.drawBitmap(0, 10, getIcon("stopwatch"), 32, 23, WHITE);
       }
@@ -260,7 +297,9 @@ void loop()
     else
     {
       display.setCursor(36, 14);
+      display.setTextSize(2);
       display.print("No data");
+      display.setTextSize(1);
       display.drawBitmap(0, 10, getIcon("error"), 32, 23, WHITE);
     }
   }
