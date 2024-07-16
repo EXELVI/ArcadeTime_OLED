@@ -15,7 +15,7 @@ ArduinoLEDMatrix matrix;
 Adafruit_SSD1306 display(OLED_RESET);
 
 #include "icons.h"
-// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 480)
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 480 + 336)
 const int epd_bitmap_allArray_LEN = 5;
 const unsigned char *epd_bitmap_allArray[5] = { // 32x23px
     epd_bitmap_check_lg,
@@ -87,7 +87,7 @@ void setup()
   Serial.begin(9600);
   while (!Serial)
   {
-    ; 
+    ;
   }
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -121,13 +121,15 @@ void setup()
     display.display();
   }
 
+  String dot = "";
+
   while (status != WL_CONNECTED)
   {
     Serial.print("Attempting to connect to SSID: ");
     Serial.println(ssid);
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.print("Attempting to connect to SSID:");
+    display.print("Connecting to");
     display.setCursor(0, 1);
     display.print(ssid);
     display.display();
@@ -194,8 +196,56 @@ void loop()
 
   if (jsonResult.hasOwnProperty("ok"))
   {
-   
-    
+    if ((bool)jsonResult["ok"] == true)
+    {
+      JSONVar data = jsonResult["data"];
+
+      if (data["completed"])
+      {
+        display.setCursor(36, 10);
+        display.print("No session");
+        display.drawBitmap(0, 10, getIcon("x"), 32, 23, WHITE);
+      }
+      else if ((bool)data["paused"])
+      {
+        display.setCursor(36, 10);
+        display.print("Paused");
+        display.drawBitmap(0, 10, getIcon("pause"), 32, 23, WHITE);
+      }
+      else
+      {
+        long remaining = long(data["endTime"]) - currentTime.getUnixTime();
+        int minutesR = remaining / 60;
+        int secondsR = remaining % 60;
+
+        if (secondsR < 0)
+        {
+          display.setCursor(36, 10);
+          display.print("Session ended");
+          display.drawBitmap(0, 10, getIcon("check"), 32, 23, WHITE);
+        }
+        else
+        {
+
+          char remainingMinStr[3];
+          char remainingSecStr[3];
+          sprintf(remainingMinStr, "%02d", minutesR);
+          sprintf(remainingSecStr, "%02d", secondsR);
+
+          display.setCursor(36, 10);
+          display.print(remainingMinStr);
+          display.print(":");
+          display.print(remainingSecStr);
+        }
+        display.drawBitmap(0, 10, getIcon("stopwatch"), 32, 23, WHITE);
+      }
+    }
+    else
+    {
+      display.setCursor(36, 14);
+      display.print("No data");
+      display.drawBitmap(0, 10, getIcon("error"), 32, 23, WHITE);
+    }
   }
 
   display.display();
