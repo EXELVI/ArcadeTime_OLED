@@ -15,14 +15,17 @@ ArduinoLEDMatrix matrix;
 Adafruit_SSD1306 display(OLED_RESET);
 
 #include "icons.h"
-// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 480)
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 480 + 336)
 const int epd_bitmap_allArray_LEN = 5;
-const unsigned char *epd_bitmap_allArray[5] = { // 32x23px
+const unsigned char *epd_bitmap_allArray[8] = { // 32x23px
     epd_bitmap_check_lg,
     epd_bitmap_exclamation_octagon_fill,
     epd_bitmap_pause_fill,
     epd_bitmap_stopwatch,
-    epd_bitmap_x_lg};
+    epd_bitmap_x_lg,
+    epd_bitmap_hourglass_bottom,
+    epd_bitmap_hourglass_split,
+    epd_bitmap_hourglass_top};
 
 const unsigned char *getIcon(const char *icon)
 {
@@ -45,6 +48,18 @@ const unsigned char *getIcon(const char *icon)
   else if (strcmp(icon, "x") == 0)
   {
     return epd_bitmap_allArray[4];
+  }
+  else if (strcmp(icon, "hourglass_bottom") == 0)
+  {
+    return epd_bitmap_allArray[5];
+  }
+  else if (strcmp(icon, "hourglass_split") == 0)
+  {
+    return epd_bitmap_allArray[6];
+  }
+  else if (strcmp(icon, "hourglass_top") == 0)
+  {
+    return epd_bitmap_allArray[7];
   }
   else
   {
@@ -163,6 +178,18 @@ void setup()
     display.print("Connecting" + String(result));
     display.setCursor(35, 20);
     display.print(ssid);
+    if (frame == 0)
+    {
+      display.drawBitmap(0, 10, getIcon("hourglass_top"), 32, 23, WHITE);
+    }
+    else if (frame == 1)
+    {
+      display.drawBitmap(0, 10, getIcon("hourglass_split"), 32, 23, WHITE);
+    }
+    else if (frame == 2)
+    {
+      display.drawBitmap(0, 10, getIcon("hourglass_bottom"), 32, 23, WHITE);
+    }
     display.display();
     frame++;
     if (frame > 2)
@@ -191,24 +218,6 @@ void setup()
   http_request();
 }
 
-/*
-EXAMPLE RESPONSE
-{
-    "ok": true,
-    "data": {
-        "id": "slackId",
-        "createdAt": "2024-06-23T02:49:17.900Z",
-        "time": 60,
-        "elapsed": 12,
-        "remaining": 48,
-        "endTime": "2024-06-23T03:08:00.000Z",
-        "goal": "No Goal",
-        "paused": true,
-        "completed": false,
-        "messageTs": "messageTs",
-    }
-}
-*/
 
 void loop()
 {
