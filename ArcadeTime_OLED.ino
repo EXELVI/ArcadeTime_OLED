@@ -80,6 +80,24 @@ int status = WL_IDLE_STATUS;
 
 WiFiClient client;
 
+long parseISO8601(const char *dateTime)
+{
+  int year, month, day, hour, minute, second;
+  sscanf(dateTime, "%4d-%2d-%2dT%2d:%2d:%2dZ", &year, &month, &day, &hour, &minute, &second);
+
+  struct tm timeinfo;
+  timeinfo.tm_year = year - 1900;
+  timeinfo.tm_mon = month - 1;
+  timeinfo.tm_mday = day;
+  timeinfo.tm_hour = hour;
+  timeinfo.tm_min = minute;
+  timeinfo.tm_sec = second;
+
+  time_t t = mktime(&timeinfo);
+  return (long)t;
+}
+
+
 void setup()
 {
 
@@ -214,7 +232,7 @@ void loop()
       }
       else
       {
-        long remaining = long(data["endTime"]) - currentTime.getUnixTime();
+            long remaining = parseISO8601(data["endTime"]) - currentTime.getUnixTime();
         int minutesR = remaining / 60;
         int secondsR = remaining % 60;
 
@@ -226,7 +244,6 @@ void loop()
         }
         else
         {
-
           char remainingMinStr[3];
           char remainingSecStr[3];
           sprintf(remainingMinStr, "%02d", minutesR);
