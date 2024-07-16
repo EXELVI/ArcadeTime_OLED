@@ -14,6 +14,43 @@ ArduinoLEDMatrix matrix;
 #define OLED_RESET 4
 Adafruit_SSD1306 display(OLED_RESET);
 
+#include "icons.h"
+// Array of all bitmaps for convenience. (Total bytes used to store images in PROGMEM = 480)
+const int epd_bitmap_allArray_LEN = 5;
+const unsigned char *epd_bitmap_allArray[5] = { // 32x23px
+    epd_bitmap_check_lg,
+    epd_bitmap_exclamation_octagon_fill,
+    epd_bitmap_pause_fill,
+    epd_bitmap_stopwatch,
+    epd_bitmap_x_lg};
+
+const unsigned char *getIcon(const char *icon)
+{
+  if (strcmp(icon, "error") == 0)
+  {
+    return epd_bitmap_allArray[1];
+  }
+  else if (strcmp(icon, "pause") == 0)
+  {
+    return epd_bitmap_allArray[2];
+  }
+  else if (strcmp(icon, "stopwatch") == 0)
+  {
+    return epd_bitmap_allArray[3];
+  }
+  else if (strcmp(icon, "check") == 0)
+  {
+    return epd_bitmap_allArray[0];
+  }
+  else if (strcmp(icon, "x") == 0)
+  {
+    return epd_bitmap_allArray[4];
+  }
+  else
+  {
+    return epd_bitmap_allArray[4];
+  }
+}
 
 #include "WiFiS3.h"
 #include <WiFiUdp.h>
@@ -43,17 +80,14 @@ int status = WL_IDLE_STATUS;
 
 WiFiClient client;
 
-/* -------------------------------------------------------------------------- */
 void setup()
 {
 
   RTC.begin();
-  /* -------------------------------------------------------------------------- */
-  // Initialize serial and wait for port to open:
   Serial.begin(9600);
   while (!Serial)
   {
-    ; // wait for serial port to connect. Needed for native USB port only
+    ; 
   }
 
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
@@ -62,10 +96,10 @@ void setup()
   display.setTextColor(WHITE);
   display.setCursor(0, 0);
   display.print("Arduino Arcade Time");
+  display.drawBitmap(0, 7, getIcon("stopwatch"), 32, 23, WHITE);
   display.display();
 
   delay(5000);
-  // check for the WiFi module:
   if (WiFi.status() == WL_NO_MODULE)
   {
     Serial.println("Communication with WiFi module failed!");
@@ -73,7 +107,6 @@ void setup()
     display.setCursor(0, 0);
     display.print("Communication with WiFi module failed!");
     display.display();
-    // don't continue
     while (true)
       ;
   }
@@ -88,7 +121,6 @@ void setup()
     display.display();
   }
 
-  // attempt to connect to WiFi network:
   while (status != WL_CONNECTED)
   {
     Serial.print("Attempting to connect to SSID: ");
@@ -118,6 +150,7 @@ void setup()
   RTC.getTime(currentTime);
   Serial.println("The RTC was just set to: " + String(currentTime));
 
+  http_request();
 }
 
 /*
@@ -141,11 +174,80 @@ EXAMPLE RESPONSE
 
 void loop()
 {
+  // Bars
+  RTCTime currentTime;
 
+  RTC.getTime(currentTime);
+  display.clearDisplay();
+  printWifiBar();
+  display.setCursor(0, 0);
 
+  String hours = String(currentTime.getHour() + timeZoneOffsetHours);
+  String minutes = String(currentTime.getMinutes());
+  String seconds = String(currentTime.getSeconds());
+  display.print(hours.length() == 1 ? "0" + hours : hours);
+  display.print(":");
+  display.print(minutes.length() == 1 ? "0" + minutes : minutes);
+  display.print(":");
+  display.print(seconds.length() == 1 ? "0" + seconds : seconds);
+  // Body
 
+  if (jsonResult.hasOwnProperty("ok"))
+  {
+   
+    
+  }
+
+  display.display();
+
+  read_response();
+  if (millis() - lastConnectionTime > postingInterval)
+  {
+    http_request();
+  }
 }
 
+void read_response()
+{
+  if (client.available())
+  {
+    Serial.println("reading response");
+    String line = client.readStringUntil('\r');
+
+    Serial.print(line);
+    if (line == "\n")
+    {
+      Serial.println("headers received");
+      String payload = client.readString();
+      myObject = JSON.parse(payload);
+      jsonResult = myObject;
+      Serial.println(jsonResult);
+    }
+  }
+}
+
+void http_request()
+{
+
+  client.stop();
+
+  Serial.println("\nStarting connection to server...");
+  if (client.connect(host, 80))
+  {
+    Serial.println("connected to server");
+    String request = "/api/session/" + String(slackid);
+    client.println("GET " + request + " HTTP/1.1");
+    client.println("Host: " + String(host));
+    client.println("Authorization: Bearer " + String(apiKey));
+    client.println("Connection: close");
+    client.println();
+    lastConnectionTime = millis();
+  }
+  else
+  {
+    Serial.println("connection failed");
+  }
+}
 
 void printWifiBar()
 {
