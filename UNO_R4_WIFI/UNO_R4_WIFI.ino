@@ -1,5 +1,3 @@
-#include "ArduinoGraphics.h"
-#include "Arduino_LED_Matrix.h"
 #include <SPI.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -10,9 +8,6 @@
 #include <NTPClient.h>
 
 auto timeZoneOffsetHours = 2; // Time zone offset in hours from UTC 
-
-
-ArduinoLEDMatrix matrix; // Create an instance of the matrix
 
 #define OLED_RESET 4 
 Adafruit_SSD1306 display(OLED_RESET); // Create an instance of the display
@@ -273,6 +268,12 @@ String seconds = String(currentTime.getSeconds());
         long remaining = parseISO8601(data["endTime"]) - currentTime.getUnixTime();  // Calculate the remaining time
         int minutesR = remaining / 60; 
         int secondsR = remaining % 60;  // the % operator returns the remainder of the division
+
+        Serial.println("Parsed End Time: " + String(parseISO8601(data["endTime"])));
+        Serial.println("Current Time: " + String((long)currentTime.getUnixTime()));
+        Serial.println("Remaining: " + String(remaining));
+        Serial.println("Minutes Remaining: " + String(minutesR));
+        Serial.println("Seconds Remaining: " + String(secondsR));
 
         if (secondsR < 0) 
         {
