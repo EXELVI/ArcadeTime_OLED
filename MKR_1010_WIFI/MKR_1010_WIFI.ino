@@ -93,7 +93,7 @@ int status = WL_IDLE_STATUS; // WiFi status
 
 WiFiClient client; // Create an instance of the WiFiClient class
 
-float parseISO8601(const char *datetime)
+time_t parseISO8601(const char *datetime)
 {
   tmElements_t tm;
   int year, month, day, hour, minute, second;
@@ -209,6 +209,7 @@ void setup()
   Serial.println("\nStarting connection to server...");
   timeClient.begin();                        // Begin the time client
   timeClient.update();                       // Update the time client
+  timeClient.setTimeOffset(3600);
   auto unixTime = timeClient.getEpochTime(); // Get the Unix time
 
   clock.setDateTime(unixTime); // Set the clock to the Unix time
@@ -238,8 +239,108 @@ void setup()
 
 void loop()
 {
+  // Bars
+  RTCDateTime currentTime = clock.getDateTime();
+  display.clearDisplay();
+  printWifiBar();
+  display.setCursor(0, 0);
 
+  int adjustedHour = (currentTime.hour + timeZoneOffsetHours  ) % 24;
+  String hours = String(adjustedHour);
+  String minutes = String(currentTime.minute);
+  String seconds = String(currentTime.second);
 
+  display.print(hours.length() == 1 ? "0" + hours : hours);
+  display.print(":");
+  display.print(minutes.length() == 1 ? "0" + minutes : minutes);
+  display.print(":");
+  display.print(seconds.length() == 1 ? "0" + seconds : seconds);
+  // Body
+
+  if (jsonResult.hasOwnProperty("ok")) // Check if the JSON result has the property "ok"
+  {
+    if ((bool)jsonResult["ok"] == true) // Check if the value of the "ok" property is true
+    {
+      JSONVar data = jsonResult["data"]; // Get the data property
+
+      if (data["completed"])
+      {
+        display.setCursor(36, 10);
+        display.print("No session");
+        display.drawBitmap(0, 10, getIcon("x"), 32, 23, WHITE);
+      }
+      else if ((bool)data["paused"])
+      {
+        String goal = data["goal"];
+        if (goal.length() > 10) // If goal exceeds 10 characters truncate it to prevent overflow
+        {
+          goal = goal.substring(0, 10) + "..."; // cut the string to 10 characters and add "..."
+        }
+        display.setCursor(36, 10);
+        display.setTextSize(2);
+        display.print("Paused");
+        display.setTextSize(1);
+        display.setCursor(36, 25);
+        display.print(goal);
+        display.drawBitmap(0, 10, getIcon("pause"), 32, 23, WHITE);
+      }
+      else
+      {
+
+        time_t endTimeUnix = parseISO8601(data["endTime"]);
+        long remaining = endTimeUnix - currentTime.unixtime;
+
+        int minutesR = remaining / 6000;
+        int secondsR = remaining % 6000;
+        
+        if (secondsR < 0)
+        {
+          display.setCursor(36, 10);
+          display.print("Session ended");
+          display.drawBitmap(0, 10, getIcon("check"), 32, 23, WHITE);
+        }
+        else
+        {
+          String goal = data["goal"];
+          if (goal.length() > 10)
+          {
+            goal = goal.substring(0, 10) + "...";
+          }
+
+          char remainingMinStr[3];
+          char remainingSecStr[3];
+          sprintf(remainingMinStr, "%02d", minutesR); // adds 0 padding to the minutes (instead of 1 it will be 01, 2 will be 02, etc.)
+          sprintf(remainingSecStr, "%02d", secondsR); // adds 0 padding to the seconds (same)
+
+          display.setCursor(36, 10);
+          display.setTextSize(2);
+          display.print(remainingMinStr);
+          display.print(":");
+          display.print(remainingSecStr);
+          display.setTextSize(1);
+          display.setCursor(36, 25);
+          display.print(goal);
+        }
+        display.drawBitmap(0, 10, getIcon("stopwatch"), 32, 23, WHITE);
+      }
+    }
+    else
+    {
+      display.setCursor(36, 14);
+      display.setTextSize(2);
+      display.print("No data");
+      display.setTextSize(1);
+      display.drawBitmap(0, 10, getIcon("error"), 32, 23, WHITE);
+    }
+  }
+
+  display.display();
+
+  read_response();
+  if (millis() - lastConnectionTime > postingInterval) // Check if the time since the last connection is greater than the posting interval, I don't like using delay() because it blocks the code
+  {
+    http_request();
+  }
 }
 
 void read_response() // Function to read the response
