@@ -93,7 +93,7 @@ int status = WL_IDLE_STATUS; // WiFi status
 
 WiFiClient client; // Create an instance of the WiFiClient class
 
-time_t parseISO8601(const char *datetime)
+float parseISO8601(const char *datetime)
 {
   tmElements_t tm;
   int year, month, day, hour, minute, second;
@@ -209,7 +209,6 @@ void setup()
   Serial.println("\nStarting connection to server...");
   timeClient.begin();                        // Begin the time client
   timeClient.update();                       // Update the time client
-  timeClient.setTimeOffset(3600);
   auto unixTime = timeClient.getEpochTime(); // Get the Unix time
 
   clock.setDateTime(unixTime); // Set the clock to the Unix time
@@ -245,7 +244,7 @@ void loop()
   printWifiBar();
   display.setCursor(0, 0);
 
-  int adjustedHour = (currentTime.hour + timeZoneOffsetHours  ) % 24;
+  int adjustedHour = (currentTime.hour + timeZoneOffsetHours) % 24;
   String hours = String(adjustedHour);
   String minutes = String(currentTime.minute);
   String seconds = String(currentTime.second);
@@ -287,11 +286,11 @@ void loop()
       else
       {
 
-        time_t endTimeUnix = parseISO8601(data["endTime"]);
-        long remaining = endTimeUnix - currentTime.unixtime;
+        long endTimeUnix = parseISO8601(data["endTime"]);
+        long remaining = endTimeUnix - (currentTime.unixtime + 86400); // I don't even know why I added 86400, but it works only with it :D (I only know that 86400 is 24 hours but the day in the RTC is right)
 
-        int minutesR = remaining / 6000;
-        int secondsR = remaining % 6000;
+        int minutesR = remaining / 60;
+        int secondsR = remaining % 60;
         
         if (secondsR < 0)
         {
