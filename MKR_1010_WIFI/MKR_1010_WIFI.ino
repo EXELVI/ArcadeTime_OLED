@@ -8,6 +8,8 @@
 #include <NTPClient.h>
 #include <TimeLib.h>
 
+RTCDateTime currentTime;
+
 auto timeZoneOffsetHours = 2; // Time zone offset in hours from UTC
 
 #define OLED_RESET 4
@@ -213,7 +215,7 @@ void setup()
 
   clock.setDateTime(unixTime); // Set the clock to the Unix time
 
-  RTCDateTime currentTime = clock.getDateTime(); // Get the cur rent time
+  currentTime = clock.getDateTime(); // Get the cur rent time
   Serial.print("Unix time = ");
   Serial.print(unixTime);
   Serial.print(" | ");
@@ -239,7 +241,7 @@ void setup()
 void loop()
 {
   // Bars
-  RTCDateTime currentTime = clock.getDateTime();
+   currentTime = clock.getDateTime();
   display.clearDisplay();
   printWifiBar();
   display.setCursor(0, 0);
