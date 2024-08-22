@@ -5,8 +5,8 @@ An arduino project for the [Arcade](https://hackclub.com/arcade) timer
 ## Photos
 
 
-![Screen 1](screen1.jpg)
-![Screen 0](screen0.jpg)
+![Screen 1](https://raw.githubusercontent.com/EXELVI/ArcadeTime_OLED/main/screen1.jpg)
+![Screen 0](https://raw.githubusercontent.com/EXELVI/ArcadeTime_OLED/main/screen0.jpg)
 
 ## Components
 
